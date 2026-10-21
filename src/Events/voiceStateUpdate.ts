@@ -194,8 +194,18 @@ export function awardVoiceXpTick(guildId: string) {
 
   const afkChannelId = guild.afkChannel?.id;
 
+  // Count non-bot members per channel first, so a user alone in a channel (even with a
+  // bot present) doesn't earn XP — only counts when there's at least one other human
+  // actually there with them.
+  const humanCountByChannel = new Map<string, number>();
   for (const vs of guild.voiceStates.cache.values()) {
     if (!vs.channelId || vs.channelId === afkChannelId || vs.member?.user.bot) continue;
+    humanCountByChannel.set(vs.channelId, (humanCountByChannel.get(vs.channelId) ?? 0) + 1);
+  }
+
+  for (const vs of guild.voiceStates.cache.values()) {
+    if (!vs.channelId || vs.channelId === afkChannelId || vs.member?.user.bot) continue;
+    if ((humanCountByChannel.get(vs.channelId) ?? 0) < 2) continue;
 
     const tag = vs.member?.user.tag ?? vs.id;
     const channelName = vs.channel?.name ?? vs.channelId;

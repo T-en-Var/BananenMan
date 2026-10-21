@@ -99,7 +99,8 @@ describe("awardVoiceXpTick", () => {
     const guild = fakeGuild(
       "g1",
       [
-        fakeVoiceState("human-in-call", "c1"),
+        fakeVoiceState("human-in-call-1", "c1"),
+        fakeVoiceState("human-in-call-2", "c1"),
         fakeVoiceState("human-in-afk", "afk-channel"),
         fakeVoiceState("a-bot", "c1", { bot: true }),
       ],
@@ -109,7 +110,34 @@ describe("awardVoiceXpTick", () => {
 
     awardVoiceXpTick("g1");
 
-    expect(mockAwardXp).toHaveBeenCalledTimes(1);
-    expect(mockAwardXp).toHaveBeenCalledWith("g1", "human-in-call", "VOICE_MINUTE", 1, "c1");
+    expect(mockAwardXp).toHaveBeenCalledTimes(2);
+    expect(mockAwardXp).toHaveBeenCalledWith("g1", "human-in-call-1", "VOICE_MINUTE", 1, "c1");
+    expect(mockAwardXp).toHaveBeenCalledWith("g1", "human-in-call-2", "VOICE_MINUTE", 1, "c1");
+  });
+
+  it("does not award XP to a human who is alone in their channel, even with a bot present", () => {
+    stateStore.set(KEYS.XP_LAST_TICK("g1"), Date.now() - 61_000);
+    const guild = fakeGuild("g1", [
+      fakeVoiceState("lonely-human", "c1"),
+      fakeVoiceState("a-bot", "c1", { bot: true }),
+    ]);
+    mockGlobalState.getClient.mockReturnValue({ guilds: { cache: new Map([["g1", guild]]) } });
+
+    awardVoiceXpTick("g1");
+
+    expect(mockAwardXp).not.toHaveBeenCalled();
+  });
+
+  it("counts humans per-channel, not per-guild — two lonely humans in different channels still earn nothing", () => {
+    stateStore.set(KEYS.XP_LAST_TICK("g1"), Date.now() - 61_000);
+    const guild = fakeGuild("g1", [
+      fakeVoiceState("human-1", "c1"),
+      fakeVoiceState("human-2", "c2"),
+    ]);
+    mockGlobalState.getClient.mockReturnValue({ guilds: { cache: new Map([["g1", guild]]) } });
+
+    awardVoiceXpTick("g1");
+
+    expect(mockAwardXp).not.toHaveBeenCalled();
   });
 });
