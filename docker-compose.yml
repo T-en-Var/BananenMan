@@ -1,16 +1,61 @@
 version: '3.8'
 
 services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: discord-bot-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    ports:
+      # Host-side port only (pgAdmin, prisma studio, `npm run dev`); the discord-bot
+      # container always talks to Postgres via the `postgres` service name on 5432.
+      # Mapped to 5433 on the host since this machine already has a native Postgres
+      # service bound to 5432.
+      - "5433:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  postgres-backup:
+    image: prodrigestivill/postgres-backup-local:16-alpine
+    container_name: discord-bot-postgres-backup
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - SCHEDULE=@daily
+      - BACKUP_KEEP_DAYS=14
+      - BACKUP_KEEP_WEEKS=4
+      - BACKUP_KEEP_MONTHS=3
+    volumes:
+      - ./backups:/backups
+
   discord-bot:
     build: .
     container_name: discord-bot
     restart: unless-stopped
+    depends_on:
+      - postgres
     environment:
       - NODE_ENV=production
       - BOT_TOKEN=${BOT_TOKEN}
       - CLIENT_ID=${CLIENT_ID}
-      - GITHUB_TOKEN=${GITHUB_TOKEN}
-      - GITHUB_USERNAME=${GITHUB_USERNAME}
-
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+    # No full bind mount: this project has native deps (canvas, @discordjs/opus, Prisma's
+    # engine) that must be built for the container's platform. The image's COPY . .
+    # provides the code; use `npm run dev` on the host for fast local iteration, and
+    # `docker compose up --build` to pick up changes for a container test. The bot's own
+    # JSON file state (settings/logs/soullink data) still needs to survive container
+    # recreation, so that one directory gets its own named volume instead.
     volumes:
-      - .:/usr/src/app
+      - bot-data:/usr/src/app/data
+
+volumes:
+  postgres-data:
+  bot-data:

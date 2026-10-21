@@ -1,64 +1,71 @@
-# Example Discord Bot Handler - V14
+# BananenMan
 
-- **Project built on `discord.js` v14.**
-- **Minimum required Node.js version: v16.11.**
-- **Example command setup can be found in [`src/Commands/info/ping.js`](https://github.com/memte/ExampleBot/blob/v14/src/Commands/info/ping.js).**  
-  For more details, visit the [Discord.js Guide](https://discordjs.guide/slash-commands/advanced-creation.html).
+A `discord.js` v14 bot (TypeScript), backed by Postgres via Prisma.
 
-- **Note: Remember to configure your settings in the [`config.js`](https://github.com/memte/ExampleBot/blob/v14/src/Base/config.js) file and Don't forget to prepare a .env file in the same way as in [`example.env`](https://github.com/memte/ExampleBot/blob/v14/example.env)**!
+## Prerequisites
 
-## Star History
+- Node.js 22+
+- Docker + Docker Compose (recommended way to run this — see below)
 
-[![Star History Chart](https://api.star-history.com/svg?repos=memte/ExampleBot&type=Date)](https://www.star-history.com/#memte/ExampleBot&Date)
+## Environment
 
-## 🌟 Support the Project
+Copy `example.env` to `.env` and fill in real values:
 
-If you find this project helpful, consider giving it a ⭐ on GitHub!
-
-![Vote](https://user-images.githubusercontent.com/63320170/175336722-373eaf92-1454-4bce-b97c-e8a629c2628e.png)
-
-### [Click here for the Discord.js V13 version.](https://github.com/memte/ExampleBot/tree/v13)
-
-
-## Commands 
-Start bot:
-
-```cmd
-pm2 start npm --name "discord-bot" -- run bot
+```
+BOT_TOKEN=...
+CLIENT_ID=...
+POSTGRES_USER=...
+POSTGRES_PASSWORD=...
+POSTGRES_DB=...
+DATABASE_URL=...   # see the comments in example.env for the Docker vs. local-dev value
 ```
 
-View logs:
+`.env` is validated on startup (`src/Base/env.ts`) — if anything required is missing or
+invalid, the bot prints exactly what's wrong and exits instead of starting in a broken state.
 
-```cmd
-pm2 logs
+## Running with Docker (recommended)
+
+```
+docker compose up -d --build
 ```
 
-Restart:
+This starts three services:
+- `postgres` — the database (published on host port `5433`, since `5432` is often already
+  taken; connect a client like pgAdmin to `localhost:5433`)
+- `postgres-backup` — takes a daily Postgres dump into `./backups/` (14 daily / 4 weekly /
+  3 monthly kept)
+- `discord-bot` — applies any pending Prisma migrations, then starts the bot
 
-```cmd
-pm2 restart discord-bot
+Both `postgres` and `discord-bot` restart automatically (`restart: unless-stopped`) if they
+crash or the host reboots.
+
+To pick up code changes, rebuild: `docker compose up -d --build discord-bot`.
+
+## Running locally (without Docker)
+
+Useful for fast iteration; you still need a reachable Postgres (e.g. `docker compose up -d postgres`).
+
+```
+npm install
+npm run dev          # runs the bot directly via tsx, no build step
 ```
 
-Stop:
+## Database migrations
 
-```cmd
-pm2 stop discord-bot
+- `npm run migrate:dev` — create/apply a migration while changing `prisma/schema.prisma` locally
+- `npm run migrate:deploy` — apply pending migrations without generating a new one (this is
+  what the Docker container runs automatically on every start)
+- `npm run prisma:studio` — browse the database in a GUI
+
+## Tests
+
+```
+npm run test
 ```
 
-### Less manual
+## Building for production (without Docker)
 
-```cmd
-docker compose up [-d] [--build]
-
-docker compose down
 ```
-
-or 
-
-```cmd
-docker build -t discord-bot .
-
-docker run --name discord-bot --env-file .env discord-bot [-d]
-
-docker stop discord-bot
+npm run build   # compiles to dist/
+npm run bot     # runs the compiled build: node dist/Base/app.js
 ```
