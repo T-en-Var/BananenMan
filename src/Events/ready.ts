@@ -2,6 +2,7 @@ import { ActivityType, Events, Client } from "discord.js";
 import { REST } from "@discordjs/rest";
 import { Routes } from "discord-api-types/v10";
 import globalState from "../Base/state.js";
+import { checkForNewDeploymentAndAnnounce } from "../Lib/deployment.js";
 
 export default {
   name: Events.ClientReady,
@@ -27,5 +28,11 @@ export default {
 
     console.log("[Event] Settings state.");
     globalState.setState("client", client);
+
+    try {
+      await checkForNewDeploymentAndAnnounce(client);
+    } catch (err) {
+      console.error("[Deployment] Failed to check/announce deployment version:", err);
+    }
   },
 };

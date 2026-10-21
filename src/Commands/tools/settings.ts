@@ -1,8 +1,10 @@
 import {
   SlashCommandBuilder,
   EmbedBuilder,
+  ChannelType,
   userMention,
   roleMention,
+  channelMention,
 } from "discord.js";
 import type { CommandBase } from "../../Lib/types.js";
 import { CustomInteractionHandler } from "../../Lib/interaction.js";
@@ -15,6 +17,7 @@ const SETTINGS = {
   },
   GENERAL_SUBCOMMANDS: {
     MOTD: "motd",
+    SET_UPDATE_CHANNEL: "setupdatechannel",
   },
   ADMIN_SUBCOMMANDS: {
     ADD_USER: "adduser",
@@ -39,6 +42,18 @@ export const commandBase: CommandBase = {
             .setName(SETTINGS.GENERAL_SUBCOMMANDS.MOTD)
             .setDescription("Set the Message of the Day")
             .addStringOption((opt) => opt.setName("value").setDescription("New MOTD").setRequired(true))
+        )
+        .addSubcommand((sub) =>
+          sub
+            .setName(SETTINGS.GENERAL_SUBCOMMANDS.SET_UPDATE_CHANNEL)
+            .setDescription("Set the channel the bot posts update announcements to")
+            .addChannelOption((opt) =>
+              opt
+                .setName("channel")
+                .setDescription("Channel for update announcements")
+                .addChannelTypes(ChannelType.GuildText)
+                .setRequired(true)
+            )
         )
     )
     .addSubcommandGroup((group) =>
@@ -88,6 +103,7 @@ export const commandBase: CommandBase = {
 
     if (group === SETTINGS.SUBCOMMAND_GROUPS.GENERAL) {
       if (sub === SETTINGS.GENERAL_SUBCOMMANDS.MOTD) return handleMOTD(handler);
+      if (sub === SETTINGS.GENERAL_SUBCOMMANDS.SET_UPDATE_CHANNEL) return handleSetUpdateChannel(handler);
     }
 
     if (group === SETTINGS.SUBCOMMAND_GROUPS.ADMIN) {
@@ -120,6 +136,20 @@ async function handleMOTD(handler: CustomInteractionHandler) {
         .setColor("Green")
         .setTitle("✅ MOTD Updated")
         .setDescription(`Message of the Day set to: **${value}**`)
+        .setTimestamp(),
+    ],
+  });
+}
+
+async function handleSetUpdateChannel(handler: CustomInteractionHandler) {
+  const channel = handler.interaction.options.getChannel("channel")!;
+  await handler.settings.set("updateChannelId", channel.id);
+  await handler.interaction.reply({
+    embeds: [
+      new EmbedBuilder()
+        .setColor("Green")
+        .setTitle("✅ Update Channel Set")
+        .setDescription(`Bot update announcements will be posted to ${channelMention(channel.id)}.`)
         .setTimestamp(),
     ],
   });

@@ -6,7 +6,7 @@ import type { ShortUser } from "./types.js";
 export class Settings {
   guildId: string;
   file: string;
-  defaults: { adminUsers: ShortUser[]; adminRoles: string[] };
+  defaults: { adminUsers: ShortUser[]; adminRoles: string[]; updateChannelId: string | null };
 
   constructor(guildId: string) {
     this.guildId = guildId;
@@ -14,6 +14,7 @@ export class Settings {
     this.defaults = {
       adminUsers: (config.defaultSettings as any).admin ?? [],
       adminRoles: [],
+      updateChannelId: null,
     };
   }
 
@@ -60,6 +61,10 @@ export class Settings {
 
   async getAdminRoles(): Promise<string[]> {
     return await this.get("adminRoles");
+  }
+
+  async getUpdateChannelId(): Promise<string | null> {
+    return await this.get("updateChannelId");
   }
 
   async addAdminUser(user: ShortUser) {

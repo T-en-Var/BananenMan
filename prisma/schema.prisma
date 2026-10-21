@@ -7,6 +7,14 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model BotDeployment {
+  id         Int      @id @default(autoincrement())
+  version    String
+  deployedAt DateTime @default(now())
+
+  @@index([deployedAt])
+}
+
 model LegacyXpImport {
   id         Int      @id @default(autoincrement())
   guildId    String

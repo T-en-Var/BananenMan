@@ -15,6 +15,11 @@ COPY . .
 RUN npx prisma generate
 RUN npm run build
 
+# Baked in at build time (CI passes the real commit SHA) so the running bot can tell
+# whether it's actually a new deployment on boot, see src/Lib/deployment.ts.
+ARG GIT_SHA=dev
+ENV GIT_SHA=$GIT_SHA
+
 # Apply any pending migrations before the bot connects, then start the compiled build
 # already baked into this image (no bind mount, so nothing here needs to be redone).
 CMD ["sh", "-c", "npx prisma migrate deploy && npm run bot"]
