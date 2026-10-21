@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install -y git openssl python3 make g++ && apt-get
 WORKDIR /usr/src/app
 
 COPY package*.json ./
-RUN npm install
+RUN npm ci
 
 COPY . .
 

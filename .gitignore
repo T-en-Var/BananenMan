@@ -1,7 +1,6 @@
 node_modules
 .env
 data
-package-lock.json
 ecosystem.config.js
 dist
 backups
