@@ -8,8 +8,6 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DB=${POSTGRES_DB}
     ports:
-      # Host-side port only (pgAdmin, prisma studio); not needed by the discord-bot
-      # container, which always talks to Postgres via the `postgres` service name on 5432.
       - "5433:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
@@ -33,15 +31,11 @@ services:
       - ./backups:/backups
 
   discord-bot:
-    # Pulled pre-built from CI (.github/workflows/build-and-push.yml) — this host never
-    # builds the image itself and never needs the repo's source code.
     image: ghcr.io/t-en-var/bananenman:latest
     container_name: discord-bot
     restart: unless-stopped
     depends_on:
       - postgres
-    # Watchtower only touches containers carrying this label — postgres/postgres-backup
-    # are deliberately left alone.
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
     environment:
@@ -53,16 +47,11 @@ services:
       - bot-data:/usr/src/app/data
 
   watchtower:
-    image: containrrr/watchtower
+    image: ghcr.io/nicholas-fedor/watchtower:latest
     container_name: discord-bot-watchtower
     restart: unless-stopped
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      # Only needed if the GHCR package is private: mount the Docker credentials from
-      # `docker login ghcr.io` (run once on whichever host runs this file) so Watchtower can
-      # check for new versions too. If the package is public instead, this line can be
-      # removed entirely and everything still works.
-      - ${HOME}/.docker/config.json:/config.json:ro
     environment:
       - WATCHTOWER_LABEL_ENABLE=true
       - WATCHTOWER_POLL_INTERVAL=300

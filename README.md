@@ -41,6 +41,14 @@ crash or the host reboots.
 
 To pick up code changes, rebuild: `docker compose up -d --build discord-bot`.
 
+## Run server (local test)
+
+Useful for fast iteration; you still need a reachable Postgres (e.g. `docker compose up -d postgres`).
+
+```
+docker compose -f server.yaml up -d --build
+```
+
 ## Running locally (without Docker)
 
 Useful for fast iteration; you still need a reachable Postgres (e.g. `docker compose up -d postgres`).
